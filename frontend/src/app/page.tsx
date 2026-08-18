@@ -14,36 +14,42 @@ const DEFAULT_MODELS: ModelInfo[] = [
   {
     id: "gemini-3.7-flash",
     name: "Gemini 3.7 Flash",
-    description: "Mô hình mới nhất, tư duy suy luận lai (Hybrid Reasoning) thông minh và tốc độ vượt trội.",
+    description: "Mô hình mới nhất, tư duy suy luận lai (Hybrid Reasoning) thông minh vượt trội.",
     tag: "Mới nhất & Khuyên dùng",
     is_default: true,
   },
   {
     id: "gemini-3.5-flash",
     name: "Gemini 3.5 Flash",
-    description: "Tư duy suy luận nhanh, phản hồi tức thì và chính xác cao.",
+    description: "Tốc độ phản hồi cực nhanh, độ chính xác cao cho mọi tác vụ.",
     tag: "Tốc độ cao",
     is_default: false,
   },
   {
     id: "gemini-3.5-flash-lite",
     name: "Gemini 3.5 Flash Lite",
-    description: "Phiên bản siêu nhẹ, tối ưu cho các câu hỏi nhanh hàng ngày.",
+    description: "Tốc độ phản hồi tức thì, tối ưu câu hỏi nhanh hàng ngày.",
     tag: "Siêu nhẹ",
+    is_default: false,
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    description: "Mô hình tiêu chuẩn ổn định, xử lý đa tác vụ.",
+    tag: "Tiêu chuẩn",
     is_default: false,
   },
   {
     id: "gemini-2.5-pro",
     name: "Gemini 2.5 Pro",
-    description: "Mô hình suy luận sâu, xử lý tài liệu dài và các bài toán phân tích phức tạp.",
+    description: "Mô hình suy luận sâu, xử lý tài liệu dài và bài toán phức tạp.",
     tag: "Chuyên sâu",
     is_default: false,
   },
 ];
 
 export default function ChatPage() {
-  const [mounted, setMounted] = useState(false);
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading, login, logout } = useAuth();
   const {
     conversations,
     currentConvId,
@@ -64,10 +70,6 @@ export default function ChatPage() {
   const [selectedModel, setSelectedModel] = useState<string>("gemini-3.7-flash");
   const [systemPrompt, setSystemPrompt] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Fetch available models from backend when authenticated
   useEffect(() => {
@@ -107,11 +109,22 @@ export default function ChatPage() {
     });
   };
 
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#090a0f] text-slate-400">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs">Đang tải AI Share Safe...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#090a0f] text-slate-100">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#090a0f]">
       {/* Passcode Modal when not authenticated */}
       <PasscodeModal
-        isOpen={mounted && !isAuthenticated}
+        isOpen={!isAuthenticated}
         onLogin={login}
       />
 

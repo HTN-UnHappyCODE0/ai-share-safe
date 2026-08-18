@@ -33,23 +33,30 @@ func (h *ModelHandler) ListModels(c *gin.Context) {
 		{
 			ID:          "gemini-3.7-flash",
 			Name:        "Gemini 3.7 Flash",
-			Description: "Mô hình mới nhất, tư duy suy luận lai (Hybrid Reasoning) thông minh và tốc độ vượt trội.",
+			Description: "Mô hình mới nhất, tư duy suy luận lai (Hybrid Reasoning) thông minh và xử lý đa tác vụ đỉnh cao.",
 			Tag:         "Mới nhất & Khuyên dùng",
 			IsDefault:   defaultModel == "gemini-3.7-flash",
 		},
 		{
 			ID:          "gemini-3.5-flash",
 			Name:        "Gemini 3.5 Flash",
-			Description: "Tư duy suy luận nhanh, phản hồi tức thì và chính xác cao.",
+			Description: "Tốc độ phản hồi cực nhanh, độ chính xác cao cho mọi tác vụ hàng ngày.",
 			Tag:         "Tốc độ cao",
 			IsDefault:   defaultModel == "gemini-3.5-flash",
 		},
 		{
 			ID:          "gemini-3.5-flash-lite",
 			Name:        "Gemini 3.5 Flash Lite",
-			Description: "Phiên bản siêu nhẹ, tối ưu cho các câu hỏi nhanh hàng ngày.",
+			Description: "Phiên bản siêu nhẹ, phản hồi tức thì cho các câu hỏi nhanh.",
 			Tag:         "Siêu nhẹ",
 			IsDefault:   defaultModel == "gemini-3.5-flash-lite",
+		},
+		{
+			ID:          "gemini-2.5-flash",
+			Name:        "Gemini 2.5 Flash",
+			Description: "Mô hình tiêu chuẩn ổn định, xử lý tác vụ tổng quát.",
+			Tag:         "Tiêu chuẩn",
+			IsDefault:   defaultModel == "gemini-2.5-flash",
 		},
 		{
 			ID:          "gemini-2.5-pro",
