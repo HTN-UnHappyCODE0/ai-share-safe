@@ -42,7 +42,8 @@ const DEFAULT_MODELS: ModelInfo[] = [
 ];
 
 export default function ChatPage() {
-  const { user, isAuthenticated, isLoading: isAuthLoading, login, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  const { user, isAuthenticated, login, logout } = useAuth();
   const {
     conversations,
     currentConvId,
@@ -63,6 +64,10 @@ export default function ChatPage() {
   const [selectedModel, setSelectedModel] = useState<string>("gemini-3.7-flash");
   const [systemPrompt, setSystemPrompt] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch available models from backend when authenticated
   useEffect(() => {
@@ -102,22 +107,11 @@ export default function ChatPage() {
     });
   };
 
-  if (isAuthLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#090a0f] text-slate-400">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs">Đang tải AI Share Safe...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#090a0f]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#090a0f] text-slate-100">
       {/* Passcode Modal when not authenticated */}
       <PasscodeModal
-        isOpen={!isAuthenticated}
+        isOpen={mounted && !isAuthenticated}
         onLogin={login}
       />
 
