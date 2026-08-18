@@ -2,8 +2,14 @@
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080",
+  async rewrites() {
+    const backendUrl = process.env.INTERNAL_BACKEND_URL || "http://127.0.0.1:8080";
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
   },
 };
 
