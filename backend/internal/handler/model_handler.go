@@ -24,32 +24,32 @@ func NewModelHandler(cfg *config.Config) *ModelHandler {
 }
 
 func (h *ModelHandler) ListModels(c *gin.Context) {
-	defaultModel := "gemini-3.5-flash"
+	defaultModel := "gemini-3.7-flash"
 	if h.cfg != nil && h.cfg.DefaultModel != "" {
 		defaultModel = h.cfg.DefaultModel
 	}
 
 	models := []ModelInfo{
 		{
+			ID:          "gemini-3.7-flash",
+			Name:        "Gemini 3.7 Flash",
+			Description: "Mô hình mới nhất, tư duy suy luận lai (Hybrid Reasoning) thông minh và tốc độ vượt trội.",
+			Tag:         "Mới nhất & Khuyên dùng",
+			IsDefault:   defaultModel == "gemini-3.7-flash",
+		},
+		{
 			ID:          "gemini-3.5-flash",
 			Name:        "Gemini 3.5 Flash",
-			Description: "Mô hình mới nhất, tư duy suy luận thông minh và tốc độ phản hồi cực nhanh.",
-			Tag:         "Khuyên dùng",
+			Description: "Tư duy suy luận nhanh, phản hồi tức thì và chính xác cao.",
+			Tag:         "Tốc độ cao",
 			IsDefault:   defaultModel == "gemini-3.5-flash",
 		},
 		{
 			ID:          "gemini-3.5-flash-lite",
 			Name:        "Gemini 3.5 Flash Lite",
-			Description: "Phiên bản siêu nhẹ, phản hồi tức thì cho các câu hỏi nhanh hàng ngày.",
-			Tag:         "Tốc độ cao",
+			Description: "Phiên bản siêu nhẹ, tối ưu cho các câu hỏi nhanh hàng ngày.",
+			Tag:         "Siêu nhẹ",
 			IsDefault:   defaultModel == "gemini-3.5-flash-lite",
-		},
-		{
-			ID:          "gemini-2.5-flash",
-			Name:        "Gemini 2.5 Flash",
-			Description: "Mô hình tiêu chuẩn ổn định, xử lý tác vụ tổng quát.",
-			Tag:         "Tiêu chuẩn",
-			IsDefault:   defaultModel == "gemini-2.5-flash",
 		},
 		{
 			ID:          "gemini-2.5-pro",
