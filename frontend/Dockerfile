@@ -12,6 +12,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Ensure public directory exists
+RUN mkdir -p /app/public
+
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
@@ -28,6 +31,7 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copy public assets
 COPY --from=builder /app/public ./public
 
 # Automatically leverage output traces to reduce image size
