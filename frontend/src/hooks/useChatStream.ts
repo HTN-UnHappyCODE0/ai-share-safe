@@ -19,11 +19,21 @@ export function useChatStream(currentConvId: string | null) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isGeneratingRef = useRef(false);
+  const skipNextHistoryFetchRef = useRef(false);
 
   // Load message history when switching conversation
   useEffect(() => {
     if (!currentConvId) {
-      setMessages([]);
+      if (!isGeneratingRef.current) {
+        setMessages([]);
+      }
+      return;
+    }
+
+    // If current conversation was just created by the active stream, skip fetching to prevent wiping out streaming state
+    if (skipNextHistoryFetchRef.current) {
+      skipNextHistoryFetchRef.current = false;
       return;
     }
 
@@ -100,6 +110,7 @@ export function useChatStream(currentConvId: string | null) {
 
       setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
       setIsGenerating(true);
+      isGeneratingRef.current = true;
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -141,60 +152,69 @@ export function useChatStream(currentConvId: string | null) {
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
+          buffer = buffer.replace(/\r\n/g, "\n");
           const lines = buffer.split("\n\n");
           buffer = lines.pop() || "";
 
           for (const block of lines) {
-            const trimmed = block.trim();
-            if (!trimmed.startsWith("data:")) continue;
+            const blockLines = block.split("\n");
+            for (const line of blockLines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith("data:")) continue;
 
-            const jsonStr = trimmed.replace(/^data:\s*/, "");
-            try {
-              const event = JSON.parse(jsonStr);
+              const jsonStr = trimmed.replace(/^data:\s*/, "");
+              if (!jsonStr) continue;
 
-              if (event.type === "start") {
-                if (event.data?.conversation_id && onConversationCreated) {
-                  onConversationCreated(
-                    event.data.conversation_id,
-                    event.data.title || "Cuộc trò chuyện mới",
-                    event.data.model || model
+              try {
+                const event = JSON.parse(jsonStr);
+
+                if (event.type === "start") {
+                  if (event.data?.conversation_id && onConversationCreated) {
+                    skipNextHistoryFetchRef.current = true;
+                    onConversationCreated(
+                      event.data.conversation_id,
+                      event.data.title || "Cuộc trò chuyện mới",
+                      event.data.model || model
+                    );
+                  }
+                } else if (event.type === "chunk") {
+                  if (event.content !== undefined && event.content !== null) {
+                    accumulatedContent += event.content;
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMsgId
+                          ? { ...msg, content: accumulatedContent, isStreaming: true }
+                          : msg
+                      )
+                    );
+                  }
+                } else if (event.type === "done") {
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMsgId
+                        ? { ...msg, content: accumulatedContent, isStreaming: false }
+                        : msg
+                    )
+                  );
+                } else if (event.type === "error") {
+                  setError(event.error || "Đã xảy ra lỗi khi tạo phản hồi");
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMsgId
+                        ? {
+                            ...msg,
+                            content:
+                              accumulatedContent +
+                              `\n\n⚠️ **Lỗi:** ${event.error || "Không thể hoàn thành câu trả lời"}`,
+                            isStreaming: false,
+                          }
+                        : msg
+                    )
                   );
                 }
-              } else if (event.type === "chunk") {
-                accumulatedContent += event.content || "";
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMsgId
-                      ? { ...msg, content: accumulatedContent, isStreaming: true }
-                      : msg
-                  )
-                );
-              } else if (event.type === "done") {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMsgId
-                      ? { ...msg, content: accumulatedContent, isStreaming: false }
-                      : msg
-                  )
-                );
-              } else if (event.type === "error") {
-                setError(event.error || "Đã xảy ra lỗi khi tạo phản hồi");
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMsgId
-                      ? {
-                          ...msg,
-                          content:
-                            accumulatedContent +
-                            `\n\n⚠️ **Lỗi:** ${event.error || "Không thể hoàn thành câu trả lời"}`,
-                          isStreaming: false,
-                        }
-                      : msg
-                  )
-                );
+              } catch (parseErr) {
+                console.warn("Failed to parse SSE line:", jsonStr, parseErr);
               }
-            } catch (parseErr) {
-              console.warn("Failed to parse SSE line:", jsonStr, parseErr);
             }
           }
         }
@@ -220,6 +240,7 @@ export function useChatStream(currentConvId: string | null) {
         }
       } finally {
         setIsGenerating(false);
+        isGeneratingRef.current = false;
         abortControllerRef.current = null;
       }
     },
