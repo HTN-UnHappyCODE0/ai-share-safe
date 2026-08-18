@@ -24,39 +24,39 @@ func NewModelHandler(cfg *config.Config) *ModelHandler {
 }
 
 func (h *ModelHandler) ListModels(c *gin.Context) {
-	defaultModel := "gemini-3.7-flash"
+	defaultModel := "gemini-3.5-flash"
 	if h.cfg != nil && h.cfg.DefaultModel != "" {
 		defaultModel = h.cfg.DefaultModel
 	}
 
 	models := []ModelInfo{
 		{
-			ID:          "gemini-3.7-flash",
-			Name:        "Gemini 3.7 Flash",
-			Description: "Mô hình mới nhất, tư duy suy luận lai (Hybrid Reasoning) và tốc độ phản hồi cực đỉnh.",
-			Tag:         "Mới nhất & Khuyên dùng",
-			IsDefault:   defaultModel == "gemini-3.7-flash",
+			ID:          "gemini-3.5-flash",
+			Name:        "Gemini 3.5 Flash",
+			Description: "Mô hình mới nhất, tư duy suy luận thông minh và tốc độ phản hồi cực nhanh.",
+			Tag:         "Khuyên dùng",
+			IsDefault:   defaultModel == "gemini-3.5-flash",
 		},
 		{
-			ID:          "gemini-2.0-flash",
-			Name:        "Gemini 2.0 Flash",
-			Description: "Tốc độ phản hồi thời gian thực cực nhanh, hỗ trợ đa tác vụ vượt trội.",
+			ID:          "gemini-3.5-flash-lite",
+			Name:        "Gemini 3.5 Flash Lite",
+			Description: "Phiên bản siêu nhẹ, phản hồi tức thì cho các câu hỏi nhanh hàng ngày.",
 			Tag:         "Tốc độ cao",
-			IsDefault:   defaultModel == "gemini-2.0-flash",
+			IsDefault:   defaultModel == "gemini-3.5-flash-lite",
 		},
 		{
-			ID:          "gemini-1.5-pro",
-			Name:        "Gemini 1.5 Pro",
-			Description: "Mô hình suy luận sâu, xử lý tài liệu dài và các bài toán lập trình phức tạp.",
-			Tag:         "Chuyên sâu",
-			IsDefault:   defaultModel == "gemini-1.5-pro",
-		},
-		{
-			ID:          "gemini-1.5-flash",
-			Name:        "Gemini 1.5 Flash",
-			Description: "Siêu nhẹ, tiết kiệm tài nguyên, phù hợp câu hỏi nhanh hàng ngày.",
+			ID:          "gemini-2.5-flash",
+			Name:        "Gemini 2.5 Flash",
+			Description: "Mô hình tiêu chuẩn ổn định, xử lý tác vụ tổng quát.",
 			Tag:         "Tiêu chuẩn",
-			IsDefault:   defaultModel == "gemini-1.5-flash",
+			IsDefault:   defaultModel == "gemini-2.5-flash",
+		},
+		{
+			ID:          "gemini-2.5-pro",
+			Name:        "Gemini 2.5 Pro",
+			Description: "Mô hình suy luận sâu, xử lý tài liệu dài và các bài toán phân tích phức tạp.",
+			Tag:         "Chuyên sâu",
+			IsDefault:   defaultModel == "gemini-2.5-pro",
 		},
 	}
 

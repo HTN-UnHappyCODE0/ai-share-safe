@@ -12,22 +12,29 @@ import { api } from "@/lib/api";
 
 const DEFAULT_MODELS: ModelInfo[] = [
   {
-    id: "gemini-3.7-flash",
-    name: "Gemini 3.7 Flash",
-    description: "Mô hình mới nhất, tư duy suy luận lai (Hybrid Reasoning) vượt trội.",
-    tag: "Mới nhất",
+    id: "gemini-3.5-flash",
+    name: "Gemini 3.5 Flash",
+    description: "Mô hình mới nhất, tư duy thông minh và tốc độ phản hồi cực nhanh.",
+    tag: "Khuyên dùng",
     is_default: true,
   },
   {
-    id: "gemini-2.0-flash",
-    name: "Gemini 2.0 Flash",
-    description: "Tốc độ phản hồi cực nhanh, xử lý thời gian thực mượt mà.",
+    id: "gemini-3.5-flash-lite",
+    name: "Gemini 3.5 Flash Lite",
+    description: "Tốc độ phản hồi tức thì, tối ưu câu hỏi nhanh hàng ngày.",
     tag: "Tốc độ cao",
     is_default: false,
   },
   {
-    id: "gemini-1.5-pro",
-    name: "Gemini 1.5 Pro",
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    description: "Mô hình tiêu chuẩn ổn định, xử lý đa tác vụ.",
+    tag: "Tiêu chuẩn",
+    is_default: false,
+  },
+  {
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
     description: "Mô hình suy luận sâu, xử lý tài liệu dài và bài toán phức tạp.",
     tag: "Chuyên sâu",
     is_default: false,
@@ -53,7 +60,7 @@ export default function ChatPage() {
   } = useChatStream(currentConvId);
 
   const [models, setModels] = useState<ModelInfo[]>(DEFAULT_MODELS);
-  const [selectedModel, setSelectedModel] = useState<string>("gemini-3.7-flash");
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-3.5-flash");
   const [systemPrompt, setSystemPrompt] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 

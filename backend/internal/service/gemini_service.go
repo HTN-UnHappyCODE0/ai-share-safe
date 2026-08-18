@@ -99,7 +99,15 @@ func (s *GeminiService) StreamChat(
 		}
 	}
 
-	// Attempt generation with key fallback
+	// List of model candidates to try (target model first, then compatible fallback models)
+	modelCandidates := []string{selectedModel}
+	for _, fallback := range []string{"gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"} {
+		if fallback != selectedModel {
+			modelCandidates = append(modelCandidates, fallback)
+		}
+	}
+
+	// Attempt generation with key fallback and model fallback
 	maxAttempts := len(s.cfg.GeminiAPIKeys)
 	if maxAttempts == 0 {
 		maxAttempts = 1
@@ -108,51 +116,63 @@ func (s *GeminiService) StreamChat(
 	var fullResponse strings.Builder
 	var lastErr error
 
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		apiKey, err := s.GetNextAPIKey()
-		if err != nil {
-			return "", err
-		}
-
-		fullResponse.Reset()
-		err = s.executeStream(ctx, apiKey, selectedModel, conversation.SystemPrompt, recentMessages, userPrompt, temperature, func(chunk string) error {
-			fullResponse.WriteString(chunk)
-			return onChunk(chunk)
-		})
-
-		if err == nil {
-			// Success! Save assistant message to DB
-			assistantMsg := &model.Message{
-				ConversationID: conversation.ID,
-				Role:           model.RoleAssistant,
-				Content:        fullResponse.String(),
+	for _, modelName := range modelCandidates {
+		for attempt := 0; attempt < maxAttempts; attempt++ {
+			apiKey, err := s.GetNextAPIKey()
+			if err != nil {
+				return "", err
 			}
-			if saveErr := s.msgRepo.Create(assistantMsg); saveErr != nil {
-				logger.Log.Error("Failed to save assistant message to database", zap.Error(saveErr))
-			}
-			return fullResponse.String(), nil
-		}
 
-		// Check if client cancelled request
-		if errors.Is(ctx.Err(), context.Canceled) {
-			logger.Log.Info("Client aborted chat stream")
-			// Still save partial response if any
-			if fullResponse.Len() > 0 {
-				partialMsg := &model.Message{
+			fullResponse.Reset()
+			err = s.executeStream(ctx, apiKey, modelName, conversation.SystemPrompt, recentMessages, userPrompt, temperature, func(chunk string) error {
+				fullResponse.WriteString(chunk)
+				return onChunk(chunk)
+			})
+
+			if err == nil {
+				// Update conversation model to working model if it changed
+				if conversation.Model != modelName {
+					conversation.Model = modelName
+					_ = s.convRepo.Update(conversation)
+				}
+
+				// Success! Save assistant message to DB
+				assistantMsg := &model.Message{
 					ConversationID: conversation.ID,
 					Role:           model.RoleAssistant,
-					Content:        fullResponse.String() + "\n\n*(Đã dừng sinh)*",
+					Content:        fullResponse.String(),
 				}
-				_ = s.msgRepo.Create(partialMsg)
+				if saveErr := s.msgRepo.Create(assistantMsg); saveErr != nil {
+					logger.Log.Error("Failed to save assistant message to database", zap.Error(saveErr))
+				}
+				return fullResponse.String(), nil
 			}
-			return fullResponse.String(), nil
-		}
 
-		lastErr = err
-		logger.Log.Warn(fmt.Sprintf("Gemini API call failed with key %d/%d, attempting fallback: %v", attempt+1, maxAttempts, err))
+			// Check if client cancelled request
+			if errors.Is(ctx.Err(), context.Canceled) {
+				logger.Log.Info("Client aborted chat stream")
+				if fullResponse.Len() > 0 {
+					partialMsg := &model.Message{
+						ConversationID: conversation.ID,
+						Role:           model.RoleAssistant,
+						Content:        fullResponse.String() + "\n\n*(Đã dừng sinh)*",
+					}
+					_ = s.msgRepo.Create(partialMsg)
+				}
+				return fullResponse.String(), nil
+			}
+
+			lastErr = err
+			logger.Log.Warn(fmt.Sprintf("Gemini API call failed with model '%s', key %d/%d: %v", modelName, attempt+1, maxAttempts, err))
+
+			// If it's a 404 (Model not found/deprecated), break to next model candidate immediately
+			if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no longer available") {
+				break
+			}
+		}
 	}
 
-	return "", fmt.Errorf("all Gemini API keys failed. Last error: %w", lastErr)
+	return "", fmt.Errorf("all Gemini models and keys failed. Last error: %w", lastErr)
 }
 
 func (s *GeminiService) executeStream(
