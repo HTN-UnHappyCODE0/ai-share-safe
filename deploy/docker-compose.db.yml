@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aisharesafe_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: aisharesafe
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-YourSecurePassword2026!}
+      POSTGRES_DB: aisharesafe_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aisharesafe -d aisharesafe_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local

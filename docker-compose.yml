@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: aisharesafe_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-aisharesafe}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-YourSecurePassword2026!}
+      POSTGRES_DB: ${DB_NAME:-aisharesafe_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-aisharesafe} -d ${DB_NAME:-aisharesafe_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aisharesafe_net
+
+  # 2. Golang Backend Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aisharesafe_backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      ENV: "production"
+      DATABASE_TYPE: "postgres"
+      DATABASE_URL: "postgres://${DB_USER:-aisharesafe}:${DB_PASSWORD:-YourSecurePassword2026!}@postgres:5432/${DB_NAME:-aisharesafe_db}?sslmode=disable"
+      GEMINI_API_KEYS: "${GEMINI_API_KEYS}"
+      JWT_SECRET: "${JWT_SECRET:-super-secret-key-change-this-in-production-2026}"
+      DEFAULT_ACCESS_PASSCODE: "${DEFAULT_ACCESS_PASSCODE:-gemini2026}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-*}"
+      RATE_LIMIT_RPM: "${RATE_LIMIT_RPM:-30}"
+      RATE_LIMIT_BURST: "${RATE_LIMIT_BURST:-5}"
+      DEFAULT_MODEL: "${DEFAULT_MODEL:-gemini-3.7-flash}"
+    ports:
+      - "8080:8080"
+    networks:
+      - aisharesafe_net
+
+  # 3. Next.js Frontend UI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aisharesafe_frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: "production"
+      PORT: "3000"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://backend:8080}"
+    ports:
+      - "3000:3000"
+    networks:
+      - aisharesafe_net
+
+  # 4. Cloudflare Tunnel (Tuỳ chọn: Public ra ngoài Internet không cần mở port)
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: aisharesafe_tunnel
+  #   restart: always
+  #   command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #   networks:
+  #     - aisharesafe_net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  aisharesafe_net:
+    driver: bridge
