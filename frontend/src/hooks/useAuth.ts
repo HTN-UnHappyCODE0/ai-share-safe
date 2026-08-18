@@ -7,9 +7,10 @@ import { api } from "@/lib/api";
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   const checkAuth = useCallback(() => {
+    if (typeof window === "undefined") return;
     try {
       const storedToken = localStorage.getItem("ai_token");
       const storedUser = localStorage.getItem("ai_user");
@@ -24,13 +25,12 @@ export function useAuth() {
     } catch {
       setToken(null);
       setUser(null);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
     checkAuth();
+    setIsMounted(true);
 
     const handleAuthChange = () => checkAuth();
     window.addEventListener("auth_change", handleAuthChange);
@@ -39,8 +39,10 @@ export function useAuth() {
 
   const login = async (passcode: string) => {
     const data = await api.verifyPasscode(passcode);
-    localStorage.setItem("ai_token", data.token);
-    localStorage.setItem("ai_user", JSON.stringify(data.user));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ai_token", data.token);
+      localStorage.setItem("ai_user", JSON.stringify(data.user));
+    }
     setToken(data.token);
     setUser(data.user);
     window.dispatchEvent(new Event("auth_change"));
@@ -48,8 +50,10 @@ export function useAuth() {
   };
 
   const logout = () => {
-    localStorage.removeItem("ai_token");
-    localStorage.removeItem("ai_user");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("ai_token");
+      localStorage.removeItem("ai_user");
+    }
     setToken(null);
     setUser(null);
     window.dispatchEvent(new Event("auth_change"));
@@ -58,7 +62,7 @@ export function useAuth() {
   return {
     user,
     token,
-    isLoading,
+    isLoading: !isMounted,
     isAuthenticated: !!token,
     login,
     logout,
