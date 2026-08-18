@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"ai-share-safe/backend/internal/config"
@@ -31,27 +32,47 @@ func NewAuthService(userRepo *repository.UserRepository, cfg *config.Config) *Au
 	}
 }
 
-// VerifyPasscode checks if the given passcode matches an existing user or creates a guest/standard user
+// VerifyPasscode checks if the given passcode matches an existing user or config default passcode
 func (s *AuthService) VerifyPasscode(passcode string) (string, *model.User, error) {
-	if passcode == "" {
+	if strings.TrimSpace(passcode) == "" {
 		return "", nil, errors.New("passcode is required")
 	}
 
-	user, err := s.userRepo.FindByPasscode(passcode)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", nil, errors.New("invalid access passcode")
+	trimmedPasscode := strings.TrimSpace(passcode)
+
+	// 1. Try finding user with this passcode in DB
+	user, err := s.userRepo.FindByPasscode(trimmedPasscode)
+	if err == nil && user != nil {
+		token, genErr := s.GenerateToken(user)
+		if genErr != nil {
+			return "", nil, genErr
 		}
+		return token, user, nil
+	}
+
+	// 2. If not found in DB, check if it matches the configured DEFAULT_ACCESS_PASSCODE
+	if trimmedPasscode == strings.TrimSpace(s.cfg.DefaultAdminPasscode) {
+		// Ensure admin user exists in DB with this passcode
+		adminUser := &model.User{
+			Username:       "admin",
+			AccessPasscode: trimmedPasscode,
+			Role:           "admin",
+			DailyQuota:     1000,
+		}
+		_ = s.userRepo.Create(adminUser)
+
+		token, genErr := s.GenerateToken(adminUser)
+		if genErr != nil {
+			return "", nil, genErr
+		}
+		return token, adminUser, nil
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "", nil, err
 	}
 
-	// Generate JWT Token (valid for 30 days)
-	token, err := s.GenerateToken(user)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return token, user, nil
+	return "", nil, errors.New("invalid access passcode")
 }
 
 func (s *AuthService) GenerateToken(user *model.User) (string, error) {
