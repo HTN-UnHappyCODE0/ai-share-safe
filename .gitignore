@@ -27,7 +27,8 @@ backend/dist/
 *.dll
 *.so
 *.dylib
-server
+/server
+/backend/server
 
 # OS & IDE
 .DS_Store
